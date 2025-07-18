@@ -1,6 +1,6 @@
 // ===================================================================================
 // --- Final SyncFlo Backend Server ---
-// This version includes the missing /api/subscribe route and all necessary logic.
+// This version has improved error logging to find the last bug.
 // ===================================================================================
 
 require('dotenv').config();
@@ -25,7 +25,6 @@ const pool = new Pool({
 });
 
 // --- Razorpay Instance ---
-// This uses the keys you set in Render's environment variables.
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -86,10 +85,6 @@ app.get('/api/plans', async (req, res) => {
     }
 });
 
-
-// ===================================================================================
-// --- THIS IS THE MISSING ROUTE THAT FIXES THE BUTTON ---
-// ===================================================================================
 app.post('/api/subscribe', async (req, res) => {
     const { userId, planId } = req.body;
     if (!userId || !planId) {
@@ -97,14 +92,12 @@ app.post('/api/subscribe', async (req, res) => {
     }
 
     try {
-        // Step 1: Create a subscription on Razorpay
         const razorpaySubscription = await razorpay.subscriptions.create({
-            plan_id: planId, // This MUST match a plan ID in your Razorpay account
+            plan_id: planId,
             customer_notify: 1,
-            total_count: 12, // For a yearly plan; adjust as needed
+            total_count: 12,
         });
 
-        // Step 2: Save the subscription record in your database
         const nextBillingDate = new Date();
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
@@ -113,15 +106,14 @@ app.post('/api/subscribe', async (req, res) => {
             [razorpaySubscription.id, userId, planId, 'created', nextBillingDate]
         );
 
-        // Step 3: Send the subscription ID back to the frontend to open the checkout
         res.json({ id: razorpaySubscription.id });
 
     } catch (err) {
-        console.error('Error in /api/subscribe:', err.message);
+        // THIS IS THE FIX: We are now logging the entire error object to see the real message.
+        console.error('Error in /api/subscribe:', JSON.stringify(err, null, 2));
         res.status(500).json({ error: 'Failed to create subscription.' });
     }
 });
-
 
 // --- Start the Server ---
 app.listen(PORT, () => {
