@@ -1,26 +1,22 @@
 // ===================================================================================
-// --- SyncFlo Backend Server ---
-// This is the complete code for your server.
+// --- Final SyncFlo Backend Server ---
+// This includes the critical CORS fix AND the correct port for Render.
 // ===================================================================================
 
-// Load environment variables from a .env file if it exists
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+// THIS IS THE FIX: Render's default port is 10000, not 3000.
+const PORT = process.env.PORT || 10000; 
 
 // --- Middleware ---
-// Enable CORS to allow your frontend to communicate with this backend
 app.use(cors());
-// Enable the server to read JSON from request bodies
 app.use(express.json());
 
 // --- Database Connection ---
-// It will use the DB_CONNECTION_STRING you set in Render's environment variables.
 const pool = new Pool({
   connectionString: process.env.DB_CONNECTION_STRING,
   ssl: {
@@ -29,11 +25,10 @@ const pool = new Pool({
 });
 
 // --- API Routes ---
-// This is the "brain" of your application.
 
 // Health check route
 app.get('/', (req, res) => {
-  res.send('SyncFlo Backend is running!');
+  res.send('SyncFlo Backend is running and configured correctly!');
 });
 
 // 1. Find or Create a User
@@ -43,13 +38,10 @@ app.post('/api/user/find-or-create', async (req, res) => {
     return res.status(400).json({ error: 'Email is required.' });
   }
   try {
-    // Check if user exists
     let userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (userResult.rows.length > 0) {
-      // User found, return them
       res.json(userResult.rows[0]);
     } else {
-      // User not found, create them
       let newUserResult = await pool.query(
         'INSERT INTO users (email, full_name) VALUES ($1, $2) RETURNING *',
         [email, fullName || 'New User']
@@ -57,7 +49,7 @@ app.post('/api/user/find-or-create', async (req, res) => {
       res.status(201).json(newUserResult.rows[0]);
     }
   } catch (err) {
-    console.error('Error in /api/user/find-or-create:', err);
+    console.error('Error in /api/user/find-or-create:', err.message);
     res.status(500).json({ error: 'Database error while finding or creating user.' });
   }
 });
@@ -79,7 +71,7 @@ app.get('/api/subscription/:userId', async (req, res) => {
             res.status(404).json({ error: 'No active subscription found.' });
         }
     } catch (err) {
-        console.error('Error in /api/subscription/:userId:', err);
+        console.error('Error in /api/subscription/:userId:', err.message);
         res.status(500).json({ error: 'Database error fetching subscription.' });
     }
 });
@@ -91,7 +83,7 @@ app.get('/api/billing-history/:userId', async (req, res) => {
         const result = await pool.query('SELECT * FROM billing_history WHERE user_id = $1 ORDER BY invoice_date DESC', [userId]);
         res.json(result.rows);
     } catch (err) {
-        console.error('Error in /api/billing-history/:userId:', err);
+        console.error('Error in /api/billing-history/:userId:', err.message);
         res.status(500).json({ error: 'Database error fetching billing history.' });
     }
 });
@@ -102,13 +94,12 @@ app.get('/api/plans', async (req, res) => {
         const result = await pool.query('SELECT * FROM plans');
         res.json(result.rows);
     } catch (err) {
-        console.error('Error in /api/plans:', err);
+        console.error('Error in /api/plans:', err.message);
         res.status(500).json({ error: 'Database error fetching plans.' });
     }
 });
 
-
 // --- Start the Server ---
 app.listen(PORT, () => {
-  console.log(`Server is listening on http://localhost:${PORT}`);
+  console.log(`Server is listening on port ${PORT}`);
 });
