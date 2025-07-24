@@ -1,6 +1,6 @@
 // ===================================================================================
 // --- Final SyncFlo Backend Server ---
-// This version includes the Nango webhook handler and secure API endpoints for connections.
+// This version has the final fix for the Nango webhook handler.
 // ===================================================================================
 
 require('dotenv').config();
@@ -8,7 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const Razorpay = require('razorpay');
-const { Nango } = require('@nangohq/node'); // --- ADDED: Nango backend SDK
+const { Nango } = require('@nangohq/node');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -31,7 +31,6 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// --- ADDED: Nango Instance ---
 const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
 
 
@@ -119,7 +118,6 @@ app.post('/api/subscribe', async (req, res) => {
     }
 });
 
-// --- ADDED: Securely fetch Nango connections for a user ---
 app.get('/api/connections/:userId', async (req, res) => {
     const { userId } = req.params;
     if (!userId) {
@@ -134,7 +132,6 @@ app.get('/api/connections/:userId', async (req, res) => {
     }
 });
 
-// --- ADDED: Securely delete a Nango connection ---
 app.delete('/api/connections', async (req, res) => {
     const { providerConfigKey, connectionId } = req.body;
     if (!providerConfigKey || !connectionId) {
@@ -161,7 +158,9 @@ app.post('/api/webhooks/nango', async (req, res) => {
       console.log(JSON.stringify(webhook, null, 2));
 
       const connectionId = webhook.connectionId;
-      const userId = webhook.endUser.endUserId;
+      // --- THE FIX IS HERE ---
+      // The user's ID is the connectionId itself because we passed it from the frontend.
+      const userId = webhook.connectionId; 
       const provider = webhook.provider;
 
       console.log(`Received new connection: User [${userId}] connected [${provider}] with ID [${connectionId}]`);
@@ -187,7 +186,7 @@ app.post('/api/webhooks/nango', async (req, res) => {
 });
 
 
-// --- Start the Server. ---
+// --- Start the Server ---
 app.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });
