@@ -1,6 +1,6 @@
 // ===================================================================================
 // --- Final SyncFlo Backend Server ---
-// This version has the final fix for the Nango webhook handler.
+// This version has the final fix for fetching connections from Nango.
 // ===================================================================================
 
 require('dotenv').config();
@@ -118,20 +118,24 @@ app.post('/api/subscribe', async (req, res) => {
     }
 });
 
+// --- Securely fetch Nango connections for a user ---
 app.get('/api/connections/:userId', async (req, res) => {
     const { userId } = req.params;
     if (!userId) {
         return res.status(400).json({ error: 'User ID is required.' });
     }
     try {
-        const connections = await nango.getConnection(userId);
-        res.json({ connections: connections.configs });
+        // --- THE FIX IS HERE ---
+        // Changed from getConnection() to listConnections() to get all connections for the user.
+        const connections = await nango.listConnections({ connectionId: userId });
+        res.json({ connections: connections.connections });
     } catch (err) {
         console.error(`Error fetching connections for user ${userId}:`, err.message);
         res.status(500).json({ error: 'Failed to fetch connections.' });
     }
 });
 
+// --- Securely delete a Nango connection ---
 app.delete('/api/connections', async (req, res) => {
     const { providerConfigKey, connectionId } = req.body;
     if (!providerConfigKey || !connectionId) {
@@ -158,8 +162,6 @@ app.post('/api/webhooks/nango', async (req, res) => {
       console.log(JSON.stringify(webhook, null, 2));
 
       const connectionId = webhook.connectionId;
-      // --- THE FIX IS HERE ---
-      // The user's ID is the connectionId itself because we passed it from the frontend.
       const userId = webhook.connectionId; 
       const provider = webhook.provider;
 
