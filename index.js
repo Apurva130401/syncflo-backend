@@ -127,6 +127,8 @@ app.post('/api/webhooks/nango', async (req, res) => {
   // Check if this is a successful new connection webhook
   if (webhook.type === 'auth' && webhook.operation === 'creation' && webhook.success) {
     try {
+      console.log('--- Full Nango Webhook Payload ---');
+      console.log(JSON.stringify(webhook, null, 2));
       const connectionId = webhook.connectionId;
       const userId = webhook.endUser.endUserId; // This is your Supabase User ID
       const provider = webhook.provider; // e.g., 'notion', 'google-calendar'
