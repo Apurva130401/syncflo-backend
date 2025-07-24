@@ -1,6 +1,6 @@
 // ===================================================================================
 // --- Final SyncFlo Backend Server ---
-// This version includes the Nango webhook handler.
+// This version includes the Nango webhook handler and secure API endpoints for connections.
 // ===================================================================================
 
 require('dotenv').config();
@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const Razorpay = require('razorpay');
+const { Nango } = require('@nangohq/node'); // --- ADDED: Nango backend SDK
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -24,17 +25,21 @@ const pool = new Pool({
   }
 });
 
-// --- Razorpay Instance ---
+// --- Service Instances ---
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
+
+// --- ADDED: Nango Instance ---
+const nango = new Nango({ secretKey: process.env.NANGO_SECRET_KEY });
 
 
 // --- API Routes ---
 
 app.get('/', (req, res) => res.send('SyncFlo Backend is running!'));
 
+// ... (your existing user, subscription, billing, and plan routes remain here) ...
 app.post('/api/user/find-or-create', async (req, res) => {
   const { email, fullName } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required.' });
@@ -114,36 +119,58 @@ app.post('/api/subscribe', async (req, res) => {
     }
 });
 
+// --- ADDED: Securely fetch Nango connections for a user ---
+app.get('/api/connections/:userId', async (req, res) => {
+    const { userId } = req.params;
+    if (!userId) {
+        return res.status(400).json({ error: 'User ID is required.' });
+    }
+    try {
+        const connections = await nango.getConnection(userId);
+        res.json({ connections: connections.configs });
+    } catch (err) {
+        console.error(`Error fetching connections for user ${userId}:`, err.message);
+        res.status(500).json({ error: 'Failed to fetch connections.' });
+    }
+});
+
+// --- ADDED: Securely delete a Nango connection ---
+app.delete('/api/connections', async (req, res) => {
+    const { providerConfigKey, connectionId } = req.body;
+    if (!providerConfigKey || !connectionId) {
+        return res.status(400).json({ error: 'Provider config key and connection ID are required.' });
+    }
+    try {
+        await nango.deleteConnection(connectionId, providerConfigKey);
+        res.status(200).json({ message: 'Connection deleted successfully.' });
+    } catch (err) {
+        console.error(`Error deleting connection ${connectionId} for provider ${providerConfigKey}:`, err.message);
+        res.status(500).json({ error: 'Failed to delete connection.' });
+    }
+});
+
 // --- Nango Webhook Handler ---
-// This is our "digital mailbox" to receive connection updates from Nango.
 app.post('/api/webhooks/nango', async (req, res) => {
   console.log('✅ Received a webhook from Nango!');
   
   const webhook = req.body;
 
-  // For security, you should verify the webhook signature in a real app,
-  // but we'll skip that for now to keep this first test simple.
-
-  // Check if this is a successful new connection webhook
   if (webhook.type === 'auth' && webhook.operation === 'creation' && webhook.success) {
     try {
       console.log('--- Full Nango Webhook Payload ---');
       console.log(JSON.stringify(webhook, null, 2));
+
       const connectionId = webhook.connectionId;
-      const userId = webhook.endUser.endUserId; // This is your Supabase User ID
-      const provider = webhook.provider; // e.g., 'notion', 'google-calendar'
+      const userId = webhook.endUser.endUserId;
+      const provider = webhook.provider;
 
       console.log(`Received new connection: User [${userId}] connected [${provider}] with ID [${connectionId}]`);
 
-      // Logic to determine which column to update in your 'profiles' table
       const columnToUpdate = `${provider}_connection_id`; 
-      // Make sure these column names match your 'profiles' table exactly!
 
-      // Create the SQL query to update the user's record in the PROFILES table
       const query = `UPDATE profiles SET ${columnToUpdate} = $1 WHERE id = $2`;
       const values = [connectionId, userId];
 
-      // Execute the query
       await pool.query(query, values);
 
       console.log(`Successfully saved connection ID for user ${userId} in column ${columnToUpdate}.`);
@@ -155,7 +182,6 @@ app.post('/api/webhooks/nango', async (req, res) => {
       res.status(500).json({ error: 'Failed to process webhook.' });
     }
   } else {
-    // If it's not a new connection webhook, just acknowledge it.
     res.status(200).send('Webhook acknowledged.');
   }
 });
