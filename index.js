@@ -187,7 +187,7 @@ app.post('/api/webhooks/nango', async (req, res) => {
 });
 
 
-// --- Start the Server ---
+// --- Start the Server. ---
 app.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });
