@@ -204,7 +204,9 @@ app.delete('/api/connections', async (req, res) => {
         return res.status(400).json({ error: 'Provider config key and connection ID are required.' });
     }
     try {
-        await nango.deleteConnection(connectionId, providerConfigKey);
+        // --- FIX ---
+        // Call deleteConnection with only the connectionId. It's unique.
+        await nango.deleteConnection(connectionId);
         res.status(200).json({ message: 'Connection deleted successfully.' });
     } catch (err) {
         console.error(`Error deleting connection ${connectionId} for provider ${providerConfigKey}:`, err.message);
