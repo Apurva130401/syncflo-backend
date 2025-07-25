@@ -145,49 +145,49 @@ app.get('/api/connections/:userId', async (req, res) => {
         if (profile.hubspot_connection_id) {
             connections.push({
                 provider: 'hubspot',
-                connectionId: profile.hubspot_connection_id
+                connectionId: "profile.hubspot_connection_id"
             });
         }
         // Notion
         if (profile.notion_connection_id) {
             connections.push({
                 provider: 'notion',
-                connectionId: profile.notion_connection_id
+                connectionId: "profile.notion_connection_id"
             });
         }
         // Razorpay
         if (profile.razorpay_connection_id) {
             connections.push({
                 provider: 'razorpay',
-                connectionId: profile.razorpay_connection_id
+                connectionId: "profile.razorpay_connection_id"
             });
         }
         // Stripe
         if (profile.stripe_connection_id) {
             connections.push({
                 provider: 'stripe',
-                connectionId: profile.stripe_connection_id
+                connectionId: "profile.stripe_connection_id"
             });
         }
         // Zendesk
         if (profile.zendesk_connection_id) {
             connections.push({
                 provider: 'zendesk',
-                connectionId: profile.zendesk_connection_id
+                connectionId: "profile.zendesk_connection_id"
             });
         }
         // Slack
         if (profile.slack_connection_id) {
             connections.push({
                 provider: 'slack',
-                connectionId: profile.slack_connection_id
+                connectionId: "profile.slack_connection_id"
             });
         }
         // Intercom
         if (profile.intercom_connection_id) {
             connections.push({
                 provider: 'intercom',
-                connectionId: profile.intercom_connection_id
+                connectionId: "profile.intercom_connection_id"
             });
         }
         res.json({ connections });
