@@ -125,21 +125,68 @@ app.get('/api/connections/:userId', async (req, res) => {
         return res.status(400).json({ error: 'User ID is required.' });
     }
     try {
-        // Fetch the user's profile from your DB
         const result = await pool.query('SELECT * FROM profiles WHERE id = $1', [userId]);
         if (result.rows.length === 0) {
             return res.json({ connections: [] });
         }
         const profile = result.rows[0];
         const connections = [];
-        // Check for each integration you support
+        // Google Calendar
+        if (profile.google_calendar_connection_id) {
+            connections.push({
+                provider: 'google_calendar',
+                connectionId: profile.google_calendar_connection_id
+            });
+        }
+        // HubSpot
+        if (profile.hubspot_connection_id) {
+            connections.push({
+                provider: 'hubspot',
+                connectionId: profile.hubspot_connection_id
+            });
+        }
+        // Notion
         if (profile.notion_connection_id) {
             connections.push({
                 provider: 'notion',
                 connectionId: profile.notion_connection_id
             });
         }
-        // Add similar checks for other providers if needed
+        // Razorpay
+        if (profile.razorpay_connection_id) {
+            connections.push({
+                provider: 'razorpay',
+                connectionId: profile.razorpay_connection_id
+            });
+        }
+        // Stripe
+        if (profile.stripe_connection_id) {
+            connections.push({
+                provider: 'stripe',
+                connectionId: profile.stripe_connection_id
+            });
+        }
+        // Zendesk
+        if (profile.zendesk_connection_id) {
+            connections.push({
+                provider: 'zendesk',
+                connectionId: profile.zendesk_connection_id
+            });
+        }
+        // Slack
+        if (profile.slack_connection_id) {
+            connections.push({
+                provider: 'slack',
+                connectionId: profile.slack_connection_id
+            });
+        }
+        // Intercom
+        if (profile.intercom_connection_id) {
+            connections.push({
+                provider: 'intercom',
+                connectionId: profile.intercom_connection_id
+            });
+        }
         res.json({ connections });
     } catch (err) {
         console.error(`Error fetching connections for user ${userId}:`, err.message);
