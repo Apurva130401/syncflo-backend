@@ -125,11 +125,22 @@ app.get('/api/connections/:userId', async (req, res) => {
         return res.status(400).json({ error: 'User ID is required.' });
     }
     try {
-        // --- THE FIX IS HERE ---
-        // Changed from getConnection() to listConnections() to get all connections for the user.
-        const connections = await nango.listConnections({});
-        console.log('All Nango connections:', connections);
-        res.json({ connections: connections.connections });
+        // Fetch the user's profile from your DB
+        const result = await pool.query('SELECT * FROM profiles WHERE id = $1', [userId]);
+        if (result.rows.length === 0) {
+            return res.json({ connections: [] });
+        }
+        const profile = result.rows[0];
+        const connections = [];
+        // Check for each integration you support
+        if (profile.notion_connection_id) {
+            connections.push({
+                provider: 'notion',
+                connectionId: profile.notion_connection_id
+            });
+        }
+        // Add similar checks for other providers if needed
+        res.json({ connections });
     } catch (err) {
         console.error(`Error fetching connections for user ${userId}:`, err.message);
         res.status(500).json({ error: 'Failed to fetch connections.' });
