@@ -152,7 +152,7 @@ app.get('/api/connections/:userId', async (req, res) => {
         if (profile.notion_connection_id) {
             connections.push({
                 provider: 'notion',
-                connectionId: "profile.notion_connection_id"
+                connectionId: profile.notion_connection_id
             });
         }
         // Razorpay
