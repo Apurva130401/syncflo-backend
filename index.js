@@ -127,7 +127,7 @@ app.get('/api/connections/:userId', async (req, res) => {
     try {
         // --- THE FIX IS HERE ---
         // Changed from getConnection() to listConnections() to get all connections for the user.
-        const connections = await nango.listConnections({ connectionId: userId });
+        const connections = await nango.listConnections({ userId });
         res.json({ connections: connections.connections });
     } catch (err) {
         console.error(`Error fetching connections for user ${userId}:`, err.message);
